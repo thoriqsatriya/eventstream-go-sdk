@@ -19,7 +19,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/AccelByte/eventstream-go-sdk/v3"
+	"bitbucket.org/accelbyte/eventstream-go-sdk/v3"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"strings"

@@ -1,4 +1,4 @@
-module github.com/AccelByte/eventstream-go-sdk/v4
+module bitbucket.org/accelbyte/eventstream-go-sdk/v4
 
 go 1.18
 

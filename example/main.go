@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/AccelByte/eventstream-go-sdk/v4"
+	"bitbucket.org/accelbyte/eventstream-go-sdk/v4"
 	"github.com/sirupsen/logrus"
 )
 

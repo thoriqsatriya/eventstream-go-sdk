@@ -26,8 +26,8 @@ import (
 	"sync"
 	"time"
 
-	kafkaprometheus "github.com/AccelByte/eventstream-go-sdk/v4/kafkaprometheus"
-	"github.com/AccelByte/eventstream-go-sdk/v4/statistics"
+	kafkaprometheus "bitbucket.org/accelbyte/eventstream-go-sdk/v4/kafkaprometheus"
+	"bitbucket.org/accelbyte/eventstream-go-sdk/v4/statistics"
 	"github.com/cenkalti/backoff"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"

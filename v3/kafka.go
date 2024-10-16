@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AccelByte/eventstream-go-sdk/v3/pkg/kafkaprometheus"
+	"bitbucket.org/accelbyte/eventstream-go-sdk/v3/pkg/kafkaprometheus"
 	"github.com/cenkalti/backoff"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"

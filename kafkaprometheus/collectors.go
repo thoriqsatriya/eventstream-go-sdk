@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AccelByte/eventstream-go-sdk/v4/statistics"
+	"bitbucket.org/accelbyte/eventstream-go-sdk/v4/statistics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
