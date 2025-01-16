@@ -144,17 +144,19 @@ func validateSubscribeEvent(subscribeBuilder *SubscribeBuilder) error {
 	}
 
 	subscribeEvent := struct {
-		Topic       string `valid:"required"`
-		EventName   string
-		GroupID     string
-		Callback    func(ctx context.Context, event *Event, err error) error
-		CallbackRaw func(ctx context.Context, msg []byte, err error) error
+		Topic                 string `valid:"required"`
+		EventName             string
+		GroupID               string
+		Callback              func(ctx context.Context, event *Event, err error) error
+		CallbackRaw           func(ctx context.Context, msg []byte, err error) error
+		CallbackRawStructured func(ctx context.Context, details *MessageDetails, err error) error
 	}{
-		Topic:       subscribeBuilder.topic,
-		EventName:   subscribeBuilder.eventName,
-		GroupID:     subscribeBuilder.groupID,
-		Callback:    subscribeBuilder.callback,
-		CallbackRaw: subscribeBuilder.callbackRaw,
+		Topic:                 subscribeBuilder.topic,
+		EventName:             subscribeBuilder.eventName,
+		GroupID:               subscribeBuilder.groupID,
+		Callback:              subscribeBuilder.callback,
+		CallbackRaw:           subscribeBuilder.callbackRaw,
+		CallbackRawStructured: subscribeBuilder.callbackRawStructured,
 	}
 
 	_, err := validator.ValidateStruct(subscribeEvent)
@@ -166,7 +168,7 @@ func validateSubscribeEvent(subscribeBuilder *SubscribeBuilder) error {
 		return err
 	}
 
-	if subscribeEvent.Callback == nil && subscribeEvent.CallbackRaw == nil {
+	if subscribeEvent.Callback == nil && subscribeEvent.CallbackRaw == nil && subscribeEvent.CallbackRawStructured == nil {
 		return errInvalidCallback
 	}
 

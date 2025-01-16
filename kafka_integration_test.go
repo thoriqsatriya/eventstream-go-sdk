@@ -18,7 +18,10 @@ package eventstream
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/mitchellh/mapstructure"
 	"math/rand"
 	"path"
 	"reflect"
@@ -26,7 +29,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1059,4 +1062,74 @@ func callerFuncName() string {
 		return path.Base(fullName)
 	}
 	return "UnknownFunction"
+}
+
+func TestKafkaIntegrationHeadersPublishSubscribe(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	// Given
+	ctx, done := context.WithTimeout(context.Background(), time.Duration(timeoutTest)*time.Second)
+	defer done()
+
+	client := createKafkaClient(t)
+	topicName := constructTopicTest()
+
+	expectedHeaders := []kafka.Header{
+		{Key: "test-header-1", Value: []byte("test-value-1")},
+		{Key: "test-header-2", Value: []byte("test-value-2")},
+	}
+
+	doneChan := make(chan struct{})
+
+	// When
+	subscriptionBuilder := NewSubscribe().
+		Topic(topicName).
+		GroupID(generateID()).
+		Offset(0).
+		Context(ctx).
+		CallbackRawStructured(func(ctx context.Context, details *MessageDetails, err error) error {
+			if err != nil {
+				return err
+			}
+
+			// Then
+			g.Expect(details.Headers).To(gomega.HaveLen(len(expectedHeaders)), "number of headers should match")
+
+			for i, expectedHeader := range expectedHeaders {
+				g.Expect(details.Headers[i].Key).To(gomega.Equal(expectedHeader.Key), fmt.Sprintf("header key should match for header %d", i))
+				g.Expect(string(details.Headers[i].Value)).To(gomega.Equal(string(expectedHeader.Value)), fmt.Sprintf("header value should match for header %d", i))
+			}
+
+			var event Event
+			err = json.Unmarshal(details.Value, &event)
+			g.Expect(err).ToNot(gomega.HaveOccurred(), "should be able to unmarshal event")
+			g.Expect(event.EventName).To(gomega.Equal("test-event"), "event name should match")
+
+			close(doneChan)
+			return nil
+		})
+	err := client.Register(subscriptionBuilder)
+	g.Expect(err).ToNot(gomega.HaveOccurred())
+
+	publishBuilder := NewPublish().
+		Topic(topicName).
+		EventName("test-event").
+		Namespace("test").
+		ClientID("661a4ac82b854f3ca3ac2e0377d356e4").
+		UserID("1fe7f425a0e049d29d87ca3d32e45b5a").
+		Headers(NewHeaderBuilder().
+			Add("test-header-1", "test-value-1").
+			Add("test-header-2", "test-value-2")).
+		Payload(map[string]interface{}{
+			"test": "test-payload",
+		})
+	err = client.Publish(publishBuilder)
+	g.Expect(err).ToNot(gomega.HaveOccurred())
+
+	select {
+	case <-doneChan:
+		// Success - message received and validated
+	case <-ctx.Done():
+		t.Fatal("timeout waiting for message with headers")
+	}
 }

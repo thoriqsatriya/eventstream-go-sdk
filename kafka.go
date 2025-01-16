@@ -515,8 +515,9 @@ func ConstructEvent(publishBuilder *PublishBuilder) (*kafka.Message, *Event, err
 	}
 
 	return &kafka.Message{
-		Key:   []byte(key),
-		Value: eventBytes,
+		Key:     []byte(key),
+		Value:   eventBytes,
+		Headers: publishBuilder.headers,
 	}, event, nil
 }
 
@@ -910,6 +911,13 @@ func (client *KafkaClient) getWriter(config *kafka.ConfigMap) (*kafka.Producer, 
 
 // processMessage process a message from kafka
 func (client *KafkaClient) processMessage(subscribeBuilder *SubscribeBuilder, message *kafka.Message, topic string) error {
+	if subscribeBuilder.callbackRawStructured != nil {
+		details := &MessageDetails{
+			Value:   message.Value,
+			Headers: message.Headers,
+		}
+		return subscribeBuilder.callbackRawStructured(subscribeBuilder.ctx, details, nil)
+	}
 	if subscribeBuilder.callbackRaw != nil {
 		return subscribeBuilder.callbackRaw(subscribeBuilder.ctx, message.Value, nil)
 	}

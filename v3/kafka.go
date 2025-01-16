@@ -546,8 +546,9 @@ func ConstructEvent(publishBuilder *PublishBuilder) (kafka.Message, *Event, erro
 	}
 
 	return kafka.Message{
-		Key:   []byte(key),
-		Value: eventBytes,
+		Key:     []byte(key),
+		Value:   eventBytes,
+		Headers: publishBuilder.headers,
 	}, event, nil
 }
 
@@ -642,6 +643,9 @@ func (client *KafkaClient) Register(subscribeBuilder *SubscribeBuilder) error {
 				}
 				if subscribeBuilder.callbackRaw != nil {
 					err = subscribeBuilder.callbackRaw(subscribeBuilder.ctx, nil, subscribeBuilder.ctx.Err())
+				}
+				if subscribeBuilder.callbackRawStructured != nil {
+					err = subscribeBuilder.callbackRawStructured(subscribeBuilder.ctx, nil, subscribeBuilder.ctx.Err())
 				}
 
 				loggerFields.WithError(subscribeBuilder.ctx.Err()).Warn("triggered an external context cancellation. Cancelling the subscription")
@@ -801,10 +805,16 @@ func (client *KafkaClient) deleteWriter(topic string) {
 
 // processMessage process a message from kafka
 func (client *KafkaClient) processMessage(subscribeBuilder *SubscribeBuilder, message kafka.Message, topic string) error {
+	if subscribeBuilder.callbackRawStructured != nil {
+		details := &MessageDetails{
+			Value:   message.Value,
+			Headers: message.Headers,
+		}
+		return subscribeBuilder.callbackRawStructured(subscribeBuilder.ctx, details, nil)
+	}
 	if subscribeBuilder.callbackRaw != nil {
 		return subscribeBuilder.callbackRaw(subscribeBuilder.ctx, message.Value, nil)
 	}
-
 	event, err := unmarshal(message)
 
 	if err != nil {

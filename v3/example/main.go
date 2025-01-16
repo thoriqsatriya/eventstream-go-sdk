@@ -17,9 +17,9 @@
 package main
 
 import (
+	"bitbucket.org/accelbyte/eventstream-go-sdk/v3"
 	"context"
 	"fmt"
-	"bitbucket.org/accelbyte/eventstream-go-sdk/v3"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"strings"
@@ -102,6 +102,16 @@ func main() {
 				}
 				fmt.Println("-----------------------audit log received-----------------------")
 				fmt.Printf("%+v", string(msgValue))
+
+				return nil
+			}).
+			CallbackRawStructured(func(ctx context.Context, msgDetails *eventstream.MessageDetails, err error) error {
+				if err != nil {
+					logrus.Error(err)
+				}
+				fmt.Println("-----------------------audit log received-----------------------")
+				fmt.Printf("%+v", string(msgDetails.Value))
+				fmt.Printf("%+v", msgDetails.Headers)
 
 				return nil
 			}))

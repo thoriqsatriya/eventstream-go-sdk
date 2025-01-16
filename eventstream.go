@@ -167,6 +167,7 @@ type PublishBuilder struct {
 	payload          map[string]interface{}
 	ctx              context.Context
 	timeout          time.Duration
+	headers          []kafka.Header
 }
 
 // NewPublish create new PublishBuilder instance
@@ -334,16 +335,24 @@ func (p *PublishBuilder) Timeout(timeout time.Duration) *PublishBuilder {
 	return p
 }
 
+func (p *PublishBuilder) Headers(headerBuilder *HeaderBuilder) *PublishBuilder {
+	if headerBuilder != nil {
+		p.headers = headerBuilder.Build()
+	}
+	return p
+}
+
 // SubscribeBuilder defines the structure of message which is sent through message broker
 type SubscribeBuilder struct {
-	topic           string
-	groupID         string
-	groupInstanceID string
-	offset          int64
-	callback        func(ctx context.Context, event *Event, err error) error
-	eventName       string
-	ctx             context.Context
-	callbackRaw     func(ctx context.Context, msgValue []byte, err error) error
+	topic                 string
+	groupID               string
+	groupInstanceID       string
+	offset                int64
+	callback              func(ctx context.Context, event *Event, err error) error
+	eventName             string
+	ctx                   context.Context
+	callbackRaw           func(ctx context.Context, msgValue []byte, err error) error
+	callbackRawStructured func(ctx context.Context, details *MessageDetails, err error) error
 	// flag to send error message to DLQ
 	sendErrorDLQ bool
 	// flag to use async commit consumer
@@ -401,6 +410,14 @@ func (s *SubscribeBuilder) CallbackRaw(
 	f func(ctx context.Context, msgValue []byte, err error) error,
 ) *SubscribeBuilder {
 	s.callbackRaw = f
+	return s
+}
+
+// CallbackRawStructured callback that receives the undecoded payload
+func (s *SubscribeBuilder) CallbackRawStructured(
+	f func(ctx context.Context, details *MessageDetails, err error) error,
+) *SubscribeBuilder {
+	s.callbackRawStructured = f
 	return s
 }
 
@@ -648,4 +665,36 @@ func (auditLogBuilder *AuditLogBuilder) Build() (*kafka.Message, error) {
 		Key:   []byte(auditLogBuilder.key),
 		Value: auditLogBytes,
 	}, nil
+}
+
+// HeaderBuilder helps build Kafka headers
+type HeaderBuilder struct {
+	headers []kafka.Header
+}
+
+// NewHeaderBuilder creates a new HeaderBuilder instance
+func NewHeaderBuilder() *HeaderBuilder {
+	return &HeaderBuilder{
+		headers: make([]kafka.Header, 0),
+	}
+}
+
+// Add adds a new header with key and value
+func (h *HeaderBuilder) Add(key string, value string) *HeaderBuilder {
+	h.headers = append(h.headers, kafka.Header{
+		Key:   key,
+		Value: []byte(value),
+	})
+	return h
+}
+
+// Build returns the constructed headers
+func (h *HeaderBuilder) Build() []kafka.Header {
+	return h.headers
+}
+
+// MessageDetails encapsulates the details of a Kafka message
+type MessageDetails struct {
+	Value   []byte
+	Headers []kafka.Header
 }
