@@ -96,6 +96,9 @@ type KafkaClient struct {
 
 	// current topic subscribed on the kafka client
 	topicSubscribedCount map[string]int
+
+	// manage our own kafka.Transport, this can be shared by all writers
+	transport *kafka.Transport
 }
 
 // setConfig sets some defaults for producers and consumers. Needed for backwards compatibility.
@@ -761,11 +764,14 @@ func (client *KafkaClient) newWriter(config kafka.WriterConfig) (*kafka.Writer, 
 		return nil, err
 	}
 
-	transport := &kafka.Transport{
-		SASL:        config.Dialer.SASLMechanism,
-		TLS:         config.Dialer.TLS,
-		ClientID:    config.Dialer.ClientID,
-		IdleTimeout: config.IdleConnTimeout,
+	// lazy initialization of shared transport
+	if client.transport == nil {
+		client.transport = &kafka.Transport{
+			SASL:        config.Dialer.SASLMechanism,
+			TLS:         config.Dialer.TLS,
+			ClientID:    config.Dialer.ClientID,
+			IdleTimeout: config.IdleConnTimeout,
+		}
 	}
 
 	writer := &kafka.Writer{
@@ -782,7 +788,7 @@ func (client *KafkaClient) newWriter(config kafka.WriterConfig) (*kafka.Writer, 
 		Async:                  config.Async,
 		Logger:                 config.Logger,
 		ErrorLogger:            config.ErrorLogger,
-		Transport:              transport,
+		Transport:              client.transport,
 		AllowAutoTopicCreation: true,
 	}
 
